@@ -4,7 +4,7 @@ First-Order Unification in Agda
 Implementation of McBride's "First-order unification by structural recursion" in Agda.
 
 I'm personally using this code to embed Prolog in Agda, but should you wish to use it
-directly you can use it as follows:
+directly you can do so as follows:
 
     -- provide a datatype for the symbols and define a decidable equality
     data Sym : ℕ → Set where
