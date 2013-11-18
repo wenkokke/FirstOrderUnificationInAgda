@@ -1,5 +1,5 @@
-First-Order Unification
-=======================
+First-Order Unification in Agda
+===============================
 
 Implementation of McBride's "First-order unification by structural recursion" in Agda.
 
