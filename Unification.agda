@@ -176,5 +176,4 @@ module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → 
 
   unify : ∀ {m} → (t₁ t₂ : Term m) → Maybe (∃ (Subst m))
   unify {m} t₁ t₂ = unifyAcc t₁ t₂ (m , nil)
-
-  -- * concept of compactness for terms
+  
