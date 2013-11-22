@@ -16,9 +16,7 @@ open import Relation.Binary.PropositionalEquality as PropEq using (_≡_; _≢_;
 
 module Unification.Correctness (Symbol : ℕ -> Set) (decEqSym : ∀ {k} (f g : Symbol k) → Dec (f ≡ g)) where
 
-  import Unification
-  module UI = Unification Symbol decEqSym
-  open UI
+  open import Unification Symbol decEqSym
 
   open RawFunctor {{...}}
   open DecSetoid {{...}} using (_≟_)
