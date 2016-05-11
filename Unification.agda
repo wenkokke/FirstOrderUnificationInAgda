@@ -3,7 +3,7 @@ open import Category.Functor
 open import Category.Monad
 open import Data.Fin as Fin using (Fin) renaming (suc to fs; zero to fz)
 import Data.Fin.Properties as FinProps
-open import Data.Maybe as Maybe using (Maybe; maybe; just; nothing; functor)
+open import Data.Maybe as Maybe using (Maybe; maybe; just; nothing)
 open import Data.Nat as Nat using (ℕ; suc; zero;  _+_; _⊔_)
 open import Data.Product using (Σ; ∃; _,_; proj₁; proj₂) renaming (_×_ to _∧_)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
@@ -15,23 +15,14 @@ open import Relation.Binary.PropositionalEquality as PropEq using (_≡_; refl; 
 
 module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → Dec (x ≡ y)) where
 
-  _<$>_ : ∀ {α β : Set} → (α → β) → Maybe α → Maybe β
-  f <$> (just x) = just (f x)
-  f <$> nothing  = nothing
-
-  _>>=_ : ∀ {α β : Set} → (Maybe α) → (α → Maybe β) → Maybe β
-  (just x) >>= f = (f x)
-  nothing  >>= f = nothing
-
-  return : ∀ {α : Set} → α → Maybe α
-  return x = just x
-
-  -- open RawFunctor {{...}} hiding (_<$>_)
-  -- open RawMonad {{...}} hiding (_<$>_; _>>=_)
+  open RawFunctor {{...}}
+  open RawMonad {{...}} hiding (_<$>_)
   open DecSetoid {{...}} using (_≟_)
 
-  private maybeFunctor = Maybe.functor
-  private maybeMonad   = Maybe.monad
+  instance MaybeFunctor = Maybe.functor
+
+  instance MaybeMonad = Maybe.monad
+
   private natDecSetoid = PropEq.decSetoid Nat._≟_
   private finDecSetoid : ∀ {n} → DecSetoid _ _
           finDecSetoid {n} = FinProps.decSetoid n
