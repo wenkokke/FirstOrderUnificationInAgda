@@ -1,10 +1,10 @@
 open import Function using (_∘_)
 open import Category.Functor
 open import Category.Monad
-open import Data.Fin as Fin using (Fin; zero; suc)
-open import Data.Fin.Props as FinProps using ()
-open import Data.Maybe as Maybe using (Maybe; maybe; just; nothing)
-open import Data.Nat as Nat using (ℕ; zero; suc; _+_; _⊔_)
+open import Data.Fin as Fin using (Fin) renaming (suc to fs; zero to fz)
+import Data.Fin.Properties as FinProps
+open import Data.Maybe as Maybe using (Maybe; maybe; just; nothing; functor)
+open import Data.Nat as Nat using (ℕ; suc; zero;  _+_; _⊔_)
 open import Data.Product using (Σ; ∃; _,_; proj₁; proj₂) renaming (_×_ to _∧_)
 open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 open import Data.Vec as Vec using (Vec; []; _∷_; head; tail)
@@ -15,8 +15,19 @@ open import Relation.Binary.PropositionalEquality as PropEq using (_≡_; refl; 
 
 module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → Dec (x ≡ y)) where
 
-  open RawFunctor {{...}}
-  open RawMonad {{...}} hiding (_<$>_)
+  _<$>_ : ∀ {α β : Set} → (α → β) → Maybe α → Maybe β
+  f <$> (just x) = just (f x)
+  f <$> nothing  = nothing
+
+  _>>=_ : ∀ {α β : Set} → (Maybe α) → (α → Maybe β) → Maybe β
+  (just x) >>= f = (f x)
+  nothing  >>= f = nothing
+
+  return : ∀ {α : Set} → α → Maybe α
+  return x = just x
+
+  -- open RawFunctor {{...}} hiding (_<$>_)
+  -- open RawMonad {{...}} hiding (_<$>_; _>>=_)
   open DecSetoid {{...}} using (_≟_)
 
   private maybeFunctor = Maybe.functor
@@ -35,7 +46,7 @@ module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → 
   -- defining decidable equality on terms
   mutual
     decEqTerm : ∀ {n} → (t₁ t₂ : Term n) → Dec (t₁ ≡ t₂)
-    decEqTerm (var  x₁) (var x₂) with x₁ ≟ x₂
+    decEqTerm (var  x₁) (var x₂) with x₁ FinProps.≟ x₂
     decEqTerm (var .x₂) (var x₂) | yes refl = yes refl
     decEqTerm (var  x₁) (var x₂) | no x₁≢x₂ = no (x₁≢x₂ ∘ elim)
       where
@@ -44,13 +55,13 @@ module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → 
       elim {n} {x} {.x} refl = refl
     decEqTerm (var _)   (con _ _) = no (λ ())
     decEqTerm (con _ _) (var _)   = no (λ ())
-    decEqTerm (con {k₁} s₁ ts₁) (con {k₂} s₂ ts₂) with k₁ ≟ k₂
+    decEqTerm (con {k₁} s₁ ts₁) (con {k₂} s₂ ts₂) with k₁ Nat.≟ k₂
     decEqTerm (con {k₁} s₁ ts₁) (con {k₂} s₂ ts₂) | no k₁≢k₂ = no (k₁≢k₂ ∘ elim)
       where
       elim : ∀ {n k₁ k₂ s₁ s₂} {ts₁ : Vec (Term n) k₁} {ts₂ : Vec (Term n) k₂}
            → con {n} {k₁} s₁ ts₁ ≡ con {n} {k₂} s₂ ts₂ → k₁ ≡ k₂
       elim {n} {k} {.k} refl = refl
-    decEqTerm (con {.k} s₁ ts₁) (con { k} s₂ ts₂) | yes refl with s₁ ≟ s₂
+    decEqTerm (con {.k} s₁ ts₁) (con { k} s₂ ts₂) | yes refl with decEqName s₁ s₂
     decEqTerm (con s₁ ts₁) (con s₂ ts₂) | yes refl | no s₁≢s₂ = no (s₁≢s₂ ∘ elim)
       where
       elim : ∀ {n k s₁ s₂} {ts₁ ts₂ : Vec (Term n) k}
@@ -95,16 +106,16 @@ module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → 
   -- defining thick and thin
 
   thin : {n : ℕ} -> Fin (suc n) -> Fin n -> Fin (suc n)
-  thin  zero    y      = suc y
-  thin (suc x)  zero   = zero
-  thin (suc x) (suc y) = suc (thin x y)
+  thin  fz    y      = fs y
+  thin (fs x)  fz   = fz
+  thin (fs x) (fs y) = fs (thin x y)
 
   thick : {n : ℕ} -> (x y : Fin (suc n)) -> Maybe (Fin n)
-  thick          zero    zero   = nothing
-  thick          zero   (suc y) = just y
-  thick {zero}  (suc ()) _
-  thick {suc n} (suc x)  zero   = just zero
-  thick {suc n} (suc x) (suc y) = suc <$> thick x y
+  thick          fz    fz   = nothing
+  thick          fz   (fs y) = just y
+  thick {Nat.zero}  (fs ()) _
+  thick {Nat.suc n} (fs x)  fz   = just fz
+  thick {Nat.suc n} (fs x) (fs y) = fs <$> (thick x y)
 
 
   -- | defining an occurs check (**check** in McBride, 2003)
@@ -158,9 +169,9 @@ module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → 
 
   mutual
     unifyAcc : ∀ {m} → (t₁ t₂ : Term m) → ∃ (Subst m) → Maybe (∃ (Subst m))
-    unifyAcc (con {k₁} s₁ ts₁) (con {k₂} s₂ ts₂) acc with k₁ ≟ k₂
+    unifyAcc (con {k₁} s₁ ts₁) (con {k₂} s₂ ts₂) acc with k₁ Nat.≟ k₂
     unifyAcc (con {k₁} s₁ ts₁) (con {k₂} s₂ ts₂) acc | no k₁≢k₂ = nothing
-    unifyAcc (con { k} s₁ ts₁) (con {.k} s₂ ts₂) acc | yes refl with s₁ ≟ s₂
+    unifyAcc (con { k} s₁ ts₁) (con {.k} s₂ ts₂) acc | yes refl with decEqName s₁ s₂
     unifyAcc (con { k} s₁ ts₁) (con {.k} s₂ ts₂) acc | yes refl | no s₁≢s₂ = nothing
     unifyAcc (con { k} .s ts₁) (con {.k}  s ts₂) acc | yes refl | yes refl = unifyAccChildren ts₁ ts₂ acc
     unifyAcc (var x₁) (var x₂) (n , nil) = just (flexFlex x₁ x₂)
@@ -176,4 +187,3 @@ module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → 
 
   unify : ∀ {m} → (t₁ t₂ : Term m) → Maybe (∃ (Subst m))
   unify {m} t₁ t₂ = unifyAcc t₁ t₂ (m , nil)
-  
