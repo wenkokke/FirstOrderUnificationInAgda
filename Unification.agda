@@ -141,9 +141,9 @@ module Unification (Name : ℕ → Set) (decEqName : ∀ {k} (x y : Name k) → 
 
 
   -- | composes two substitutions
-  _++_ : ∀ {l m n} → Subst m n → Subst l m → Subst l n
-  s₁ ++ nil = s₁
-  s₁ ++ (snoc s₂ t x) = snoc (s₁ ++ s₂) t x
+  _⊕_ : ∀ {l m n} → Subst m n → Subst l m → Subst l n
+  s₁ ⊕ nil = s₁
+  s₁ ⊕ (snoc s₂ t x) = snoc (s₁ ⊕ s₂) t x
 
 
   flexRigid : ∀ {n} → Fin n → Term n → Maybe (∃ (Subst n))
